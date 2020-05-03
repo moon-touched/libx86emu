@@ -41,7 +41,11 @@
 #include <string.h>
 
 // exported symbol - all others are not exported by the library
+#if defined(__GNUC__)
 #define API_SYM			__attribute__((visibility("default")))
+#else
+#define API_SYM
+#endif
 
 #include "x86emu.h"
 #include "decode.h"

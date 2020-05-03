@@ -35,6 +35,8 @@
 #include "include/x86emu_int.h"
 #if defined(__i386__) || defined (__x86_64__)
 #include <sys/io.h>
+#else
+#define X86EMU_NO_DIRECT_PORT_IO
 #endif
 
 #define PERM16(a)	((a) + ((a) << 8))
@@ -570,6 +572,7 @@ unsigned vm_i_byte(x86emu_t *emu, unsigned addr)
   addr &= 0xffff;
   perm = emu->io.map + addr;
 
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   if(
     emu->io.iopl_ok &&
     (*perm & X86EMU_PERM_R)
@@ -581,8 +584,12 @@ unsigned vm_i_byte(x86emu_t *emu, unsigned addr)
     return inb(addr);
   }
   else {
+#endif
     *perm |= X86EMU_ACC_INVALID;
+
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   }
+#endif
 
   emu->mem->invalid = 1;
 
@@ -598,16 +605,19 @@ unsigned vm_i_word(x86emu_t *emu, unsigned addr)
   addr &= 0xffff;
   perm = emu->io.map + addr;
 
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   if(
     !emu->io.iopl_ok ||
     addr == 0xffff ||
     !(perm[0] & X86EMU_PERM_R) ||
     !(perm[1] & X86EMU_PERM_R)
   ) {
+#endif
     val = vm_i_byte(emu, addr);
     val += (vm_i_byte(emu, addr + 1) << 8);
 
     return val;
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   }
 
   perm[0] |= X86EMU_ACC_R;
@@ -617,6 +627,7 @@ unsigned vm_i_word(x86emu_t *emu, unsigned addr)
   emu->io.stats_i[addr + 1]++;
 
   return inw(addr);
+#endif
 }
 
 
@@ -628,6 +639,7 @@ unsigned vm_i_dword(x86emu_t *emu, unsigned addr)
   addr &= 0xffff;
   perm = emu->io.map + addr;
 
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   if(
     !emu->io.iopl_ok ||
     addr >= 0xfffd ||
@@ -636,12 +648,15 @@ unsigned vm_i_dword(x86emu_t *emu, unsigned addr)
     !(perm[2] & X86EMU_PERM_R) ||
     !(perm[3] & X86EMU_PERM_R)
   ) {
+#endif
     val = vm_i_byte(emu, addr);
     val += (vm_i_byte(emu, addr + 1) << 8);
     val += (vm_i_byte(emu, addr + 2) << 16);
     val += (vm_i_byte(emu, addr + 3) << 24);
 
     return val;
+
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   }
 
   perm[0] |= X86EMU_ACC_R;
@@ -655,6 +670,7 @@ unsigned vm_i_dword(x86emu_t *emu, unsigned addr)
   emu->io.stats_i[addr + 3]++;
 
   return inl(addr);
+#endif
 }
 
 
@@ -665,6 +681,7 @@ void vm_o_byte(x86emu_t *emu, unsigned addr, unsigned val)
   addr &= 0xffff;
   perm = emu->io.map + addr;
 
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   if(
     emu->io.iopl_ok &&
     (*perm & X86EMU_PERM_W)
@@ -676,10 +693,14 @@ void vm_o_byte(x86emu_t *emu, unsigned addr, unsigned val)
     outb(val, addr);
   }
   else {
+#endif
     *perm |= X86EMU_ACC_INVALID;
 
     emu->mem->invalid = 1;
+
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   }
+#endif
 }
 
 
@@ -690,16 +711,20 @@ void vm_o_word(x86emu_t *emu, unsigned addr, unsigned val)
   addr &= 0xffff;
   perm = emu->io.map + addr;
 
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   if(
     !emu->io.iopl_ok ||
     addr == 0xffff ||
     !(perm[0] & X86EMU_PERM_W) ||
     !(perm[1] & X86EMU_PERM_W)
   ) {
+#endif
     vm_o_byte(emu, addr, val);
     vm_o_byte(emu, addr + 1, val);
 
     return;
+
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   }
 
   perm[0] |= X86EMU_ACC_W;
@@ -709,6 +734,7 @@ void vm_o_word(x86emu_t *emu, unsigned addr, unsigned val)
   emu->io.stats_o[addr + 1]++;
 
   outw(val, addr);
+#endif
 }
 
 
@@ -719,6 +745,7 @@ void vm_o_dword(x86emu_t *emu, unsigned addr, unsigned val)
   addr &= 0xffff;
   perm = emu->io.map + addr;
 
+#ifndef X86EMU_NO_DIRECT_PORT_IO
   if(
     !emu->io.iopl_ok ||
     addr >= 0xfffd ||
@@ -727,11 +754,13 @@ void vm_o_dword(x86emu_t *emu, unsigned addr, unsigned val)
     !(perm[2] & X86EMU_PERM_W) ||
     !(perm[3] & X86EMU_PERM_W)
   ) {
+#endif
     vm_o_byte(emu, addr, val);
     vm_o_byte(emu, addr + 1, val);
     vm_o_byte(emu, addr + 2, val);
     vm_o_byte(emu, addr + 3, val);
 
+#ifndef X86EMU_NO_DIRECT_PORT_IO
     return;
   }
 
@@ -746,6 +775,7 @@ void vm_o_dword(x86emu_t *emu, unsigned addr, unsigned val)
   emu->io.stats_o[addr + 3]++;
 
   outl(val, addr);
+#endif
 }
 
 
